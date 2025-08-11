@@ -1,3 +1,4 @@
+
 # Crypto Treasury Expansions Dashboard
 
 A real-time web dashboard that monitors and displays cryptocurrency treasury expansions, acquisitions, and new announcements from Google News RSS feeds. The application automatically scrapes news from the last 24 hours and filters specifically for treasury expansion activities and fresh announcements.
@@ -243,3 +244,4 @@ If you encounter any issues or have questions, please:
 ---
 
 **Built with ❤️ using Python, Flask, and modern web technologies** 
+
