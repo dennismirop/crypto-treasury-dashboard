@@ -220,19 +220,23 @@ class CryptoNewsScraper:
     def parse_date(self, date_str: str) -> datetime:
         """Parse various date formats from RSS feeds"""
         try:
-            # Try parsing RFC 822 format (most common in RSS)
-            return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %Z")
+            # Try parsing RFC 822 format with timezone (most common in RSS)
+            return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
         except ValueError:
             try:
-                # Try parsing without timezone
-                return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S")
+                # Try parsing RFC 822 format without timezone
+                return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %Z")
             except ValueError:
                 try:
-                    # Try ISO format
-                    return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                    # Try parsing without timezone
+                    return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S")
                 except ValueError:
-                    logger.warning(f"Could not parse date: {date_str}")
-                    return datetime.now()
+                    try:
+                        # Try ISO format
+                        return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                    except ValueError:
+                        logger.warning(f"Could not parse date: {date_str}")
+                        return datetime.now()
     
     def fetch_news_from_rss(self, query: str) -> List[Dict[str, Any]]:
         """Fetch news from Google News RSS feed for a specific query"""
