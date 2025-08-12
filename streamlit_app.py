@@ -197,20 +197,16 @@ def get_article_type(article):
 # Filter articles to focus on new announcements
 def filter_articles(articles, filter_type):
     if filter_type == 'all':
-        # Filter out existing activity even in "all" view
-        return [article for article in articles if get_article_type(article) != 'Existing Activity']
+        # Temporarily show all articles while we work on getting better ones
+        return articles
     
     filtered = []
     for article in articles:
         article_type = get_article_type(article)
         
-        # Skip existing activity articles
-        if article_type == 'Existing Activity':
-            continue
-        
         if filter_type == 'announcements':
-            # Only show new announcements
-            if article_type == 'New Announcement':
+            # Show new announcements and expansions (less strict for now)
+            if article_type in ['New Announcement', 'Expansion']:
                 filtered.append(article)
         elif filter_type == 'expansions':
             # Show announcements and expansions
@@ -324,6 +320,8 @@ def main():
     
     if not filtered_articles:
         st.info("No articles match the current filter. Try selecting a different filter option or refresh the news.")
+    elif len(filtered_articles) < 3:
+        st.warning("⚠️ Limited articles found. The scraper is currently finding mostly existing activity reports. We're working on improving the search queries to find more genuine new announcements.")
     else:
         for article in filtered_articles:
             article_type = get_article_type(article)
