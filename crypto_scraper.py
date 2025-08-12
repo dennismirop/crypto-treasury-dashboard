@@ -50,7 +50,7 @@ class CryptoNewsScraper:
         return f"{self.base_url}/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
     
     def is_treasury_expansion(self, title: str, description: str) -> bool:
-        """Check if the news article is about specific company treasury expansions or announcements"""
+        """Check if the news article is about NEW crypto treasury announcements only"""
         text = f"{title} {description}".lower()
         
         # Must contain at least one crypto keyword
@@ -63,11 +63,6 @@ class CryptoNewsScraper:
         if not has_treasury:
             return False
             
-        # Must contain at least one expansion/announcement keyword
-        has_expansion = any(keyword in text for keyword in self.expansion_keywords)
-        if not has_expansion:
-            return False
-            
         # EXCLUDE general market news patterns
         exclude_patterns = [
             "collectively increased", "collectively added", "collectively grew", "collectively expanded",
@@ -76,29 +71,49 @@ class CryptoNewsScraper:
             "market analysis", "market commentary", "market overview", "market report",
             "sector analysis", "industry analysis", "market trend", "market movement",
             "price analysis", "price movement", "price trend", "technical analysis",
-            "fundamental analysis", "trading volume", "trading activity"
+            "fundamental analysis", "trading volume", "trading activity",
+            "price prediction", "price forecast", "market prediction", "market forecast",
+            "technical indicator", "support level", "resistance level", "moving average",
+            "rsi", "macd", "bollinger", "fibonacci", "elliot wave",
+            "hodl", "diamond hands", "to the moon", "lambo", "wen",
+            "daily update", "weekly update", "monthly update", "quarterly update",
+            "earnings report", "financial results", "revenue report", "profit report"
         ]
         
         # Reject if it contains general market language
         if any(pattern in text for pattern in exclude_patterns):
             return False
             
-        # Must contain specific company action patterns
-        company_action_patterns = [
+        # MUST contain NEW announcement patterns (balanced approach)
+        new_announcement_patterns = [
+            # Primary announcement patterns (strongest indicators)
             r'\b(announces|announced)\s+(?:that\s+)?(?:it\s+)?(?:has\s+)?(?:will\s+)?(?:plans\s+to\s+)?(?:to\s+)?(?:add|acquire|buy|purchase|expand|increase)',
-            r'\b(adds|added|acquires|acquired|buys|bought|purchases|purchased)\s+(?:an?\s+)?(?:additional\s+)?(?:more\s+)?(?:bitcoin|btc|ethereum|eth|solana|sol|bnb|altcoin)',
-            r'\b(expands|expanded|increases|increased|boosts|boosted)\s+(?:its\s+)?(?:treasury|holdings|reserves|portfolio)',
-            r'\b(launches|launched|reveals|revealed|unveils|unveiled)\s+(?:new\s+)?(?:treasury|investment|acquisition)',
-            r'\b(company|corp|inc|ltd|llc|foundation|protocol)\s+(?:announces|announced|adds|added|acquires|acquired)',
-            r'\b(strategy|microstrategy|tesla|square|coinbase|binance|tether|matador|capital\s+b|sharplink|vivopower|bnc|trump\s+family)\s+(?:announces|announced|adds|added|acquires|acquired)',
             r'\b(announces|announced)\s+(?:strategic|new|major|significant)\s+(?:acquisition|investment|purchase|addition)',
             r'\b(announces|announced)\s+(?:plans\s+to\s+)?(?:expand|increase|boost)\s+(?:its\s+)?(?:treasury|holdings|reserves)',
-            r'\b(announces|announced)\s+(?:a\s+)?(?:new\s+)?(?:treasury|investment|acquisition)\s+(?:strategy|initiative|program)'
+            r'\b(announces|announced)\s+(?:a\s+)?(?:new\s+)?(?:treasury|investment|acquisition)\s+(?:strategy|initiative|program)',
+            r'\b(launches|launched|reveals|revealed|unveils|unveiled)\s+(?:new\s+)?(?:treasury|investment|acquisition)',
+            
+            # Specific company announcements (major companies)
+            r'\b(microstrategy|strategy|tesla|square|coinbase|binance|tether|matador|capital\s+b|sharplink|vivopower|bnc)\s+(?:announces|announced|adds|added|acquires|acquired|buys|bought)',
+            
+            # Recent acquisition patterns (within last 24 hours)
+            r'\b(adds|added|acquires|acquired|buys|bought|purchases|purchased)\s+(?:an?\s+)?(?:additional\s+)?(?:more\s+)?(?:bitcoin|btc|ethereum|eth|solana|sol|bnb|altcoin)',
+            r'\b(expands|expanded|increases|increased|boosts|boosted)\s+(?:its\s+)?(?:treasury|holdings|reserves|portfolio)',
+            
+            # New initiative patterns
+            r'\b(introduces|introduced|starts|started|begins|began)\s+(?:new\s+)?(?:treasury|investment|acquisition)\s+(?:program|initiative|strategy)',
+            r'\b(implements|implemented|adopts|adopted)\s+(?:new\s+)?(?:treasury|investment)\s+(?:policy|strategy|approach)',
+            
+            # Company action patterns (for major companies)
+            r'\b(microstrategy|strategy|tesla|square|coinbase|binance|tether|matador|capital\s+b|sharplink|vivopower|bnc)\s+(?:adds|added|acquires|acquired|buys|bought|purchases|purchased)',
+            
+            # Treasury expansion patterns
+            r'\b(expands|expanded|increases|increased|boosts|boosted)\s+(?:its\s+)?(?:treasury|holdings|reserves|portfolio)\s+(?:with|by|to)\s+(?:bitcoin|btc|ethereum|eth)'
         ]
         
-        # Check if it contains specific company action language
+        # Check if it contains NEW announcement language
         import re
-        for pattern in company_action_patterns:
+        for pattern in new_announcement_patterns:
             if re.search(pattern, text):
                 return True
                 
@@ -274,38 +289,46 @@ class CryptoNewsScraper:
             return []
     
     def scrape_all_crypto_treasury_news(self) -> List[Dict[str, Any]]:
-        """Scrape crypto treasury expansion news from multiple relevant queries"""
+        """Scrape NEW crypto treasury announcements from multiple relevant queries"""
         queries = [
-            "crypto treasury expansion",
-            "bitcoin treasury acquisition",
-            "ethereum treasury purchase",
-            "solana treasury investment",
-            "cardano treasury announcement",
-            "polkadot treasury acquisition",
+            # Primary announcement queries
+            "crypto treasury announcement",
+            "bitcoin treasury announcement",
+            "ethereum treasury announcement",
             "cryptocurrency treasury announcement",
-            "crypto company adds bitcoin",
-            "crypto company adds ethereum",
-            "crypto company adds solana",
-            "blockchain treasury investment",
-            "defi treasury launch",
-            "crypto balance sheet expansion",
-            "digital asset treasury acquisition",
-            "crypto investment announcement",
-            "bitcoin treasury reserves increase",
-            "ethereum holdings expansion",
-            "solana holdings expansion",
-            "altcoin treasury acquisition",
-            "crypto company buys bitcoin",
-            "crypto company buys ethereum",
-            "crypto company buys altcoins",
-            "treasury bitcoin acquisition",
-            "treasury ethereum acquisition",
-            "treasury altcoin acquisition",
-            "crypto reserves announcement",
-            "defi protocol treasury expansion",
-            "nft treasury investment",
-            "web3 treasury acquisition",
-            "token treasury purchase"
+            "crypto company announces bitcoin",
+            "crypto company announces ethereum",
+            "crypto company announces treasury",
+            "bitcoin treasury acquisition announcement",
+            "ethereum treasury purchase announcement",
+            
+            # Major company specific queries
+            "microstrategy bitcoin announcement",
+            "microstrategy treasury announcement",
+            "tesla bitcoin announcement",
+            "square bitcoin announcement",
+            "coinbase treasury announcement",
+            "binance treasury announcement",
+            "tether treasury announcement",
+            
+            # New initiative queries
+            "crypto treasury strategy announcement",
+            "crypto treasury policy announcement",
+            "crypto treasury program announcement",
+            "crypto treasury initiative announcement",
+            
+            # Recent acquisition queries (last 24 hours)
+            "crypto company adds bitcoin today",
+            "crypto company adds ethereum today",
+            "crypto company buys bitcoin today",
+            "crypto company buys ethereum today",
+            "treasury bitcoin acquisition today",
+            "treasury ethereum acquisition today",
+            
+            # New program queries
+            "crypto treasury investment program",
+            "crypto treasury acquisition program",
+            "crypto treasury expansion program"
         ]
         
         all_articles = []

@@ -8,8 +8,8 @@ import time
 
 # Page configuration
 st.set_page_config(
-    page_title="Crypto Treasury Expansions Dashboard",
-    page_icon="📈",
+    page_title="Crypto Treasury Announcements Dashboard",
+    page_icon="📢",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -107,8 +107,8 @@ def main():
     # Header
     st.markdown("""
     <div class="main-header">
-        <h1>📈 Crypto Treasury Expansions Dashboard</h1>
-        <p>Real-time monitoring of cryptocurrency treasury expansions, acquisitions, and new announcements</p>
+        <h1>📢 Crypto Treasury Announcements Dashboard</h1>
+        <p>Real-time monitoring of NEW cryptocurrency treasury announcements, acquisitions, and strategic initiatives</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -121,7 +121,7 @@ def main():
         options=['all', 'expansions', 'announcements'],
         format_func=lambda x: {
             'all': '📰 All Articles',
-            'expansions': '📈 Expansions & Announcements',
+            'expansions': '📢 New Announcements',
             'announcements': '📢 New Announcements Only'
         }[x]
     )
