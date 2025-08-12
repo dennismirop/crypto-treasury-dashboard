@@ -11,7 +11,7 @@ st.set_page_config(
     page_title="Crypto Treasury Announcements Dashboard",
     page_icon="📢",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS for clean, professional design
@@ -103,55 +103,26 @@ st.markdown("""
         border-top: 1px solid #f3f4f6;
     }
     
-    .sidebar-section {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    .sidebar-title {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #1f2937;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-    }
-    
-    .sidebar-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #f3f4f6;
-    }
-    
-    .sidebar-item:last-child {
-        border-bottom: none;
-    }
-    
-    .sidebar-label {
-        font-size: 0.9rem;
-        color: #374151;
-        flex: 1;
-        margin-right: 1rem;
-    }
-    
-    .sidebar-count {
-        background: #667eea;
+    .refresh-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 0.2rem 0.6rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
         font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+    
+    .refresh-button:hover {
+        transform: translateY(-1px);
     }
     
     /* Hide Streamlit default elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    .stSidebar {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -238,34 +209,34 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar
-    st.sidebar.markdown("""
-    <div class="sidebar-section">
-        <div class="sidebar-title">🎛️ Filters & Controls</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Filter options in main area
+    col1, col2, col3 = st.columns([2, 1, 1])
     
-    # Filter options
-    filter_type = st.sidebar.radio(
-        "Filter Articles:",
-        options=['all', 'announcements', 'expansions'],
-        format_func=lambda x: {
-            'all': '📰 All Articles',
-            'announcements': '📢 New Announcements Only',
-            'expansions': '📈 Announcements & Expansions'
-        }[x]
-    )
+    with col1:
+        filter_type = st.radio(
+            "Filter Articles:",
+            options=['all', 'announcements', 'expansions'],
+            format_func=lambda x: {
+                'all': '📰 All Articles',
+                'announcements': '📢 New Announcements Only',
+                'expansions': '📈 Announcements & Expansions'
+            }[x],
+            horizontal=True
+        )
     
-    # Refresh button
-    if st.sidebar.button("🔄 Refresh News", type="primary", use_container_width=True):
-        with st.spinner("Refreshing news data..."):
-            try:
-                articles = scraper.scrape_all_crypto_treasury_news()
-                scraper.save_to_json()
-                st.success("News refreshed successfully!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Error refreshing news: {e}")
+    with col2:
+        st.write("")  # Spacer
+    
+    with col3:
+        if st.button("🔄 Refresh News", type="primary", use_container_width=True):
+            with st.spinner("Refreshing news data..."):
+                try:
+                    articles = scraper.scrape_all_crypto_treasury_news()
+                    scraper.save_to_json()
+                    st.success("News refreshed successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error refreshing news: {e}")
     
     # Load data
     data = load_news_data()
@@ -372,62 +343,6 @@ def main():
                 </div>
             </div>
             """, unsafe_allow_html=True)
-    
-    # Sidebar analytics
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("""
-    <div class="sidebar-section">
-        <div class="sidebar-title">📊 Analytics</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Top sources
-    if articles:
-        source_counts = {}
-        for article in articles:
-            source = article.get('source', 'Unknown')
-            source_counts[source] = source_counts.get(source, 0) + 1
-        
-        top_sources = sorted(source_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        
-        st.sidebar.markdown("""
-        <div class="sidebar-section">
-            <div class="sidebar-title">📰 Top Sources</div>
-        """, unsafe_allow_html=True)
-        
-        for source, count in top_sources:
-            st.sidebar.markdown(f"""
-            <div class="sidebar-item">
-                <span class="sidebar-label">{source}</span>
-                <span class="sidebar-count">{count}</span>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.sidebar.markdown("</div>", unsafe_allow_html=True)
-    
-    # Top queries
-    if articles:
-        query_counts = {}
-        for article in articles:
-            query = article.get('query', 'Unknown')
-            query_counts[query] = query_counts.get(query, 0) + 1
-        
-        top_queries = sorted(query_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-        
-        st.sidebar.markdown("""
-        <div class="sidebar-section">
-            <div class="sidebar-title">🔍 Top Queries</div>
-        """, unsafe_allow_html=True)
-        
-        for query, count in top_queries:
-            st.sidebar.markdown(f"""
-            <div class="sidebar-item">
-                <span class="sidebar-label">{query}</span>
-                <span class="sidebar-count">{count}</span>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main() 
