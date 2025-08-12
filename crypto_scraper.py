@@ -307,17 +307,6 @@ class CryptoNewsScraper:
             "bitcoin treasury acquisition announcement",
             "ethereum treasury purchase announcement",
             
-            # Major company specific queries
-            "microstrategy bitcoin announcement",
-            "microstrategy treasury announcement",
-            "tesla bitcoin announcement",
-            "square bitcoin announcement",
-            "coinbase treasury announcement",
-            "binance treasury announcement",
-            "tether treasury announcement",
-            "two hands crypto treasury",
-            "two hands trading desk",
-            
             # New initiative queries
             "crypto treasury strategy announcement",
             "crypto treasury policy announcement",
