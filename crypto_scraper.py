@@ -246,10 +246,16 @@ class CryptoNewsScraper:
                             
                             # Check if it's a treasury expansion or new announcement
                             if self.is_treasury_expansion(item.get('title', ''), item.get('description', '')):
+                                # Extract the actual article URL
+                                actual_url = self.extract_actual_url(
+                                    item.get('description', ''), 
+                                    item.get('link', '')
+                                )
+                                
                                 article = {
                                     'title': item.get('title', ''),
                                     'description': item.get('description', ''),
-                                    'link': item.get('link', ''),
+                                    'link': actual_url,
                                     'published': pub_date.isoformat(),
                                     'source': item.get('source', {}).get('title', 'Unknown') if isinstance(item.get('source'), dict) else 'Unknown',
                                     'query': query
@@ -340,6 +346,57 @@ class CryptoNewsScraper:
         logger.info(f"Found {len(unique_articles)} unique crypto treasury expansion articles")
         
         return unique_articles
+    
+    def extract_actual_url(self, description: str, rss_link: str) -> str:
+        """Extract the actual article URL from the description or follow redirect"""
+        try:
+            import re
+            import urllib.parse
+            
+            # First, try to extract URL from the description
+            # Google News RSS descriptions often contain the actual URL in an <a> tag
+            href_pattern = r'href="([^"]+)"'
+            href_match = re.search(href_pattern, description)
+            if href_match:
+                actual_url = href_match.group(1)
+                # Remove Google News redirect parameters
+                if 'news.google.com' in actual_url:
+                    # Extract the actual URL from Google News redirect
+                    url_match = re.search(r'url=([^&]+)', actual_url)
+                    if url_match:
+                        decoded_url = urllib.parse.unquote(url_match.group(1))
+                        return decoded_url
+                return actual_url
+            
+            # If no href found in description, try to extract from the RSS link itself
+            if 'news.google.com' in rss_link:
+                # Look for url parameter in the RSS link
+                url_match = re.search(r'url=([^&]+)', rss_link)
+                if url_match:
+                    decoded_url = urllib.parse.unquote(url_match.group(1))
+                    return decoded_url
+            
+            # If still no URL found, try to follow the RSS link redirect
+            try:
+                response = requests.head(rss_link, timeout=10, allow_redirects=True)
+                if response.status_code == 200:
+                    final_url = response.url
+                    # If the final URL is still a Google News URL, try to extract the actual URL
+                    if 'news.google.com' in final_url:
+                        url_match = re.search(r'url=([^&]+)', final_url)
+                        if url_match:
+                            decoded_url = urllib.parse.unquote(url_match.group(1))
+                            return decoded_url
+                    return final_url
+            except Exception as e:
+                logger.warning(f"Error following redirect: {e}")
+            
+            # Fallback to the original RSS link
+            return rss_link
+            
+        except Exception as e:
+            logger.warning(f"Error extracting actual URL: {e}")
+            return rss_link
     
     def save_to_json(self, filename: str = "crypto_treasury_news.json"):
         """Save scraped news to JSON file"""
