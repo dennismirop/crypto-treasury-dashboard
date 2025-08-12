@@ -162,7 +162,22 @@ def get_article_type(article):
         'adds', 'added', 'expands', 'expanded', 'increases', 'increased'
     ]
     
-    # Check for primary announcement keywords first
+    # Keywords that indicate existing activity (not new announcements)
+    existing_activity_keywords = [
+        'holdings hit', 'holdings reach', 'total holdings', 'holdings to',
+        'boosting holdings', 'holdings now', 'holdings at', 'holdings of',
+        'current holdings', 'existing holdings', 'portfolio reaches',
+        'reaches', 'hits', 'now holds', 'currently holds', 'holds',
+        'bitcoin news today', 'crypto news today', 'daily update',
+        'weekly update', 'monthly update', 'quarterly update'
+    ]
+    
+    # Check for existing activity first (exclude these)
+    has_existing_activity = any(keyword in text for keyword in existing_activity_keywords)
+    if has_existing_activity:
+        return 'Existing Activity'
+    
+    # Check for primary announcement keywords
     has_primary_announcement = any(keyword in text for keyword in primary_announcement)
     has_secondary_announcement = any(keyword in text for keyword in secondary_announcement)
     has_expansion = any(keyword in text for keyword in expansion_keywords)
@@ -182,11 +197,16 @@ def get_article_type(article):
 # Filter articles to focus on new announcements
 def filter_articles(articles, filter_type):
     if filter_type == 'all':
-        return articles
+        # Filter out existing activity even in "all" view
+        return [article for article in articles if get_article_type(article) != 'Existing Activity']
     
     filtered = []
     for article in articles:
         article_type = get_article_type(article)
+        
+        # Skip existing activity articles
+        if article_type == 'Existing Activity':
+            continue
         
         if filter_type == 'announcements':
             # Only show new announcements
@@ -313,6 +333,8 @@ def main():
                 badge_class = 'badge-announcement'
             elif article_type == 'Expansion':
                 badge_class = 'badge-expansion'
+            elif article_type == 'Existing Activity':
+                badge_class = 'badge-activity'
             else:
                 badge_class = 'badge-activity'
             
