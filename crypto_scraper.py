@@ -293,6 +293,72 @@ class CryptoNewsScraper:
             logger.error(f"Error fetching RSS feed for query '{query}': {e}")
             return []
     
+    def fetch_coindesk_rss(self) -> List[Dict[str, Any]]:
+        """Fetch news from CoinDesk RSS feed and filter for treasury-related content"""
+        try:
+            coindesk_rss_url = "https://www.coindesk.com/arc/outboundfeeds/rss/"
+            logger.info(f"Fetching news from CoinDesk RSS: {coindesk_rss_url}")
+            
+            response = requests.get(coindesk_rss_url, timeout=30)
+            response.raise_for_status()
+            
+            # Parse XML using xmltodict
+            feed_data = xmltodict.parse(response.content)
+            articles = []
+            
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            
+            # Extract items from RSS feed
+            if 'rss' in feed_data and 'channel' in feed_data['rss']:
+                channel = feed_data['rss']['channel']
+                if 'item' in channel:
+                    items = channel['item'] if isinstance(channel['item'], list) else [channel['item']]
+                    
+                    for item in items:
+                        try:
+                            # Parse the publication date
+                            pub_date = self.parse_date(item.get('pubDate', ''))
+                            
+                            # Only include articles from the last 24 hours
+                            if pub_date < cutoff_time:
+                                continue
+                            
+                            # Check if it's treasury-related content
+                            title = item.get('title', '')
+                            description = item.get('description', '')
+                            
+                            # Filter for treasury-related keywords
+                            treasury_keywords = [
+                                'treasury', 'bitcoin', 'ethereum', 'crypto', 'cryptocurrency',
+                                'acquisition', 'purchase', 'buys', 'adds', 'announces',
+                                'launches', 'investment', 'reserves', 'holdings'
+                            ]
+                            
+                            text_to_check = f"{title} {description}".lower()
+                            has_treasury_keyword = any(keyword in text_to_check for keyword in treasury_keywords)
+                            
+                            if has_treasury_keyword and self.is_treasury_expansion(title, description):
+                                article = {
+                                    'title': title,
+                                    'description': description,
+                                    'link': item.get('link', ''),
+                                    'published': pub_date.isoformat(),
+                                    'source': 'CoinDesk',
+                                    'query': 'coindesk_rss'
+                                }
+                                articles.append(article)
+                                logger.info(f"Found CoinDesk treasury article: {title}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error processing CoinDesk entry: {e}")
+                            continue
+                    
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Error fetching CoinDesk RSS feed: {e}")
+            return []
+    
     def scrape_all_crypto_treasury_news(self) -> List[Dict[str, Any]]:
         """Scrape NEW crypto treasury announcements from multiple relevant queries"""
         queries = [
@@ -337,6 +403,7 @@ class CryptoNewsScraper:
         
         all_articles = []
         
+        # Scrape from Google News RSS feeds
         for query in queries:
             logger.info(f"Scraping news for query: {query}")
             articles = self.fetch_news_from_rss(query)
@@ -344,6 +411,11 @@ class CryptoNewsScraper:
             
             # Be respectful to the server
             time.sleep(2)
+        
+        # Scrape from CoinDesk RSS feed
+        logger.info("Scraping from CoinDesk RSS feed")
+        coindesk_articles = self.fetch_coindesk_rss()
+        all_articles.extend(coindesk_articles)
         
         # Remove duplicates based on link and similar titles
         seen_links = set()
