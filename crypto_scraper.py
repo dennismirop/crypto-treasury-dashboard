@@ -1,6 +1,6 @@
 import xmltodict
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import time
 import re
@@ -265,6 +265,12 @@ class CryptoNewsScraper:
                             pub_date = self.parse_date(item.get('pubDate', ''))
                             
                             # Only include articles from the last 24 hours
+                            # Make sure both datetimes are timezone-aware for comparison
+                            if pub_date.tzinfo is None:
+                                pub_date = pub_date.replace(tzinfo=timezone.utc)
+                            
+                            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+                            
                             if pub_date < cutoff_time:
                                 continue
                             
@@ -324,6 +330,12 @@ class CryptoNewsScraper:
                             pub_date = self.parse_date(item.get('pubDate', ''))
                             
                             # Only include articles from the last 24 hours
+                            # Make sure both datetimes are timezone-aware for comparison
+                            if pub_date.tzinfo is None:
+                                pub_date = pub_date.replace(tzinfo=timezone.utc)
+                            
+                            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+                            
                             if pub_date < cutoff_time:
                                 continue
                             
