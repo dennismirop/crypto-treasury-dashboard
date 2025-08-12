@@ -14,40 +14,144 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
+# Custom CSS for clean, professional design
 st.markdown("""
 <style>
+    /* Main styling */
     .main-header {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 2rem;
-        border-radius: 10px;
+        border-radius: 15px;
         color: white;
         margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
+    
     .metric-card {
         background: white;
         padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 4px solid #6366f1;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
     }
+    
     .article-card {
         background: white;
         padding: 1.5rem;
-        border-radius: 10px;
+        border-radius: 12px;
         border: 1px solid #e5e7eb;
         margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    
+    .article-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
     .badge {
-        padding: 0.25rem 0.75rem;
+        padding: 0.4rem 0.8rem;
         border-radius: 20px;
         font-size: 0.75rem;
-        font-weight: 500;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
-    .badge-expansion { background-color: #10b981; color: white; }
-    .badge-announcement { background-color: #3b82f6; color: white; }
-    .badge-activity { background-color: #6b7280; color: white; }
+    
+    .badge-announcement { 
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; 
+    }
+    
+    .badge-expansion { 
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white; 
+    }
+    
+    .badge-activity { 
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white; 
+    }
+    
+    .article-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+    
+    .article-title a {
+        color: #1f2937;
+        text-decoration: none;
+    }
+    
+    .article-title a:hover {
+        color: #667eea;
+    }
+    
+    .article-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 1rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #f3f4f6;
+    }
+    
+    .sidebar-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .sidebar-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .sidebar-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .sidebar-item:last-child {
+        border-bottom: none;
+    }
+    
+    .sidebar-label {
+        font-size: 0.9rem;
+        color: #374151;
+        flex: 1;
+        margin-right: 1rem;
+    }
+    
+    .sidebar-count {
+        background: #667eea;
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    /* Hide Streamlit default elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -65,26 +169,46 @@ def load_news_data():
             return json.load(f)
     return {'articles': [], 'last_updated': None}
 
-# Get article type
+# Get article type with focus on announcements
 def get_article_type(article):
     text = f"{article.get('title', '')} {article.get('description', '')}".lower()
     
-    primary_expansion = ['buys', 'bought', 'purchases', 'purchased', 'acquires', 'acquired', 'adds', 'added']
-    primary_announcement = ['announces', 'announced', 'launches', 'launched', 'reveals', 'revealed']
+    # Primary announcement keywords (highest priority)
+    primary_announcement = [
+        'announces', 'announced', 'announcement', 'launches', 'launched', 'launch',
+        'reveals', 'revealed', 'reveal', 'unveils', 'unveiled', 'unveil',
+        'introduces', 'introduced', 'starts', 'started', 'begins', 'began'
+    ]
     
-    has_primary_expansion = any(keyword in text for keyword in primary_expansion)
+    # Secondary announcement keywords
+    secondary_announcement = [
+        'new', 'fresh', 'latest', 'recent', 'strategic', 'initiative', 'program'
+    ]
+    
+    # Expansion keywords
+    expansion_keywords = [
+        'buys', 'bought', 'purchases', 'purchased', 'acquires', 'acquired', 
+        'adds', 'added', 'expands', 'expanded', 'increases', 'increased'
+    ]
+    
+    # Check for primary announcement keywords first
     has_primary_announcement = any(keyword in text for keyword in primary_announcement)
+    has_secondary_announcement = any(keyword in text for keyword in secondary_announcement)
+    has_expansion = any(keyword in text for keyword in expansion_keywords)
     
-    if has_primary_expansion and has_primary_announcement:
-        return 'Expansion & Announcement'
-    elif has_primary_expansion:
-        return 'Expansion'
-    elif has_primary_announcement:
+    # Prioritize announcements
+    if has_primary_announcement:
         return 'New Announcement'
+    elif has_primary_announcement and has_expansion:
+        return 'New Announcement'
+    elif has_expansion:
+        return 'Expansion'
+    elif has_secondary_announcement:
+        return 'Treasury Activity'
     else:
         return 'Treasury Activity'
 
-# Filter articles
+# Filter articles to focus on new announcements
 def filter_articles(articles, filter_type):
     if filter_type == 'all':
         return articles
@@ -93,11 +217,13 @@ def filter_articles(articles, filter_type):
     for article in articles:
         article_type = get_article_type(article)
         
-        if filter_type == 'expansions':
-            if article_type in ['Expansion', 'New Announcement', 'Expansion & Announcement']:
+        if filter_type == 'announcements':
+            # Only show new announcements
+            if article_type == 'New Announcement':
                 filtered.append(article)
-        elif filter_type == 'announcements':
-            if article_type in ['New Announcement', 'Expansion & Announcement']:
+        elif filter_type == 'expansions':
+            # Show announcements and expansions
+            if article_type in ['New Announcement', 'Expansion']:
                 filtered.append(article)
     
     return filtered
@@ -108,26 +234,30 @@ def main():
     st.markdown("""
     <div class="main-header">
         <h1>📢 Crypto Treasury Announcements Dashboard</h1>
-        <p>Real-time monitoring of NEW cryptocurrency treasury announcements, acquisitions, and strategic initiatives</p>
+        <p>Real-time monitoring of NEW cryptocurrency treasury announcements, strategic initiatives, and corporate crypto adoption</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Sidebar
-    st.sidebar.title("🎛️ Filters & Controls")
+    st.sidebar.markdown("""
+    <div class="sidebar-section">
+        <div class="sidebar-title">🎛️ Filters & Controls</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Filter options
     filter_type = st.sidebar.radio(
         "Filter Articles:",
-        options=['all', 'expansions', 'announcements'],
+        options=['all', 'announcements', 'expansions'],
         format_func=lambda x: {
             'all': '📰 All Articles',
-            'expansions': '📢 New Announcements',
-            'announcements': '📢 New Announcements Only'
+            'announcements': '📢 New Announcements Only',
+            'expansions': '📈 Announcements & Expansions'
         }[x]
     )
     
     # Refresh button
-    if st.sidebar.button("🔄 Refresh News", type="primary"):
+    if st.sidebar.button("🔄 Refresh News", type="primary", use_container_width=True):
         with st.spinner("Refreshing news data..."):
             try:
                 articles = scraper.scrape_all_crypto_treasury_news()
@@ -162,11 +292,12 @@ def main():
         """, unsafe_allow_html=True)
     
     with col3:
-        queries = set(article.get('query', 'Unknown') for article in articles)
+        # Count new announcements
+        new_announcements = sum(1 for article in articles if get_article_type(article) == 'New Announcement')
         st.markdown(f"""
         <div class="metric-card">
-            <h3>🔍 Search Queries</h3>
-            <h2>{len(queries)}</h2>
+            <h3>📢 New Announcements</h3>
+            <h2>{new_announcements}</h2>
         </div>
         """, unsafe_allow_html=True)
     
@@ -198,19 +329,19 @@ def main():
     filtered_articles = filter_articles(articles, filter_type)
     
     # Articles section
-    st.markdown(f"## 📰 Articles ({len(filtered_articles)} of {len(articles)})")
+    st.markdown(f"## 📰 Latest Treasury Announcements ({len(filtered_articles)} of {len(articles)})")
     
     if not filtered_articles:
-        st.info("No articles match the current filter. Try selecting a different filter option.")
+        st.info("No articles match the current filter. Try selecting a different filter option or refresh the news.")
     else:
         for article in filtered_articles:
             article_type = get_article_type(article)
             
             # Determine badge class
-            if 'Expansion' in article_type:
-                badge_class = 'badge-expansion'
-            elif 'Announcement' in article_type:
+            if article_type == 'New Announcement':
                 badge_class = 'badge-announcement'
+            elif article_type == 'Expansion':
+                badge_class = 'badge-expansion'
             else:
                 badge_class = 'badge-activity'
             
@@ -224,17 +355,17 @@ def main():
             st.markdown(f"""
             <div class="article-card">
                 <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                    <h4 style="margin: 0; flex: 1;">
-                        <a href="{article.get('link', '#')}" target="_blank" style="text-decoration: none; color: #1f2937;">
+                    <h4 class="article-title">
+                        <a href="{article.get('link', '#')}" target="_blank">
                             {article.get('title', 'No title')}
                         </a>
                     </h4>
                     <span class="badge {badge_class}">{article_type}</span>
                 </div>
-                <p style="color: #6b7280; margin: 0.5rem 0; font-size: 0.9rem;">
-                    {article.get('description', 'No description')[:200]}...
+                <p style="color: #6b7280; margin: 0.5rem 0; font-size: 0.9rem; line-height: 1.5;">
+                    {article.get('description', 'No description')[:250]}...
                 </p>
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #9ca3af;">
+                <div class="article-meta">
                     <span>📅 {formatted_date}</span>
                     <span>📰 {article.get('source', 'Unknown')}</span>
                     <span>🔍 {article.get('query', 'Unknown')}</span>
@@ -244,7 +375,11 @@ def main():
     
     # Sidebar analytics
     st.sidebar.markdown("---")
-    st.sidebar.markdown("## 📊 Analytics")
+    st.sidebar.markdown("""
+    <div class="sidebar-section">
+        <div class="sidebar-title">📊 Analytics</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Top sources
     if articles:
@@ -255,9 +390,20 @@ def main():
         
         top_sources = sorted(source_counts.items(), key=lambda x: x[1], reverse=True)[:5]
         
-        st.sidebar.markdown("### Top Sources")
+        st.sidebar.markdown("""
+        <div class="sidebar-section">
+            <div class="sidebar-title">📰 Top Sources</div>
+        """, unsafe_allow_html=True)
+        
         for source, count in top_sources:
-            st.sidebar.markdown(f"**{source}**: {count}")
+            st.sidebar.markdown(f"""
+            <div class="sidebar-item">
+                <span class="sidebar-label">{source}</span>
+                <span class="sidebar-count">{count}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.sidebar.markdown("</div>", unsafe_allow_html=True)
     
     # Top queries
     if articles:
@@ -268,9 +414,20 @@ def main():
         
         top_queries = sorted(query_counts.items(), key=lambda x: x[1], reverse=True)[:5]
         
-        st.sidebar.markdown("### Top Queries")
+        st.sidebar.markdown("""
+        <div class="sidebar-section">
+            <div class="sidebar-title">🔍 Top Queries</div>
+        """, unsafe_allow_html=True)
+        
         for query, count in top_queries:
-            st.sidebar.markdown(f"**{query}**: {count}")
+            st.sidebar.markdown(f"""
+            <div class="sidebar-item">
+                <span class="sidebar-label">{query}</span>
+                <span class="sidebar-count">{count}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.sidebar.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main() 
