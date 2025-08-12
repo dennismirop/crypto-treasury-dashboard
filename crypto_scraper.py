@@ -92,9 +92,14 @@ class CryptoNewsScraper:
             r'\b(announces|announced)\s+(?:plans\s+to\s+)?(?:expand|increase|boost)\s+(?:its\s+)?(?:treasury|holdings|reserves)',
             r'\b(announces|announced)\s+(?:a\s+)?(?:new\s+)?(?:treasury|investment|acquisition)\s+(?:strategy|initiative|program)',
             r'\b(launches|launched|reveals|revealed|unveils|unveiled)\s+(?:new\s+)?(?:treasury|investment|acquisition)',
+            r'\b(launches|launched)\s+(?:new\s+)?(?:crypto|digital\s+asset|bitcoin|ethereum)\s+(?:treasury|trading\s+desk|investment)',
             
             # Specific company announcements (major companies)
             r'\b(microstrategy|strategy|tesla|square|coinbase|binance|tether|matador|capital\s+b|sharplink|vivopower|bnc)\s+(?:announces|announced|adds|added|acquires|acquired|buys|bought)',
+            
+            # General company announcements (any company launching/announcing crypto treasury)
+            r'\b(company|corp|inc|ltd|llc|foundation|protocol|corporation)\s+(?:announces|announced|launches|launched)\s+(?:new\s+)?(?:crypto|digital\s+asset|bitcoin|ethereum)\s+(?:treasury|trading\s+desk|investment)',
+            r'\b(announces|announced|launches|launched)\s+(?:new\s+)?(?:crypto|digital\s+asset|bitcoin|ethereum)\s+(?:treasury|trading\s+desk|investment)',
             
             # Recent acquisition patterns (within last 24 hours)
             r'\b(adds|added|acquires|acquired|buys|bought|purchases|purchased)\s+(?:an?\s+)?(?:additional\s+)?(?:more\s+)?(?:bitcoin|btc|ethereum|eth|solana|sol|bnb|altcoin)',
@@ -310,6 +315,8 @@ class CryptoNewsScraper:
             "coinbase treasury announcement",
             "binance treasury announcement",
             "tether treasury announcement",
+            "two hands crypto treasury",
+            "two hands trading desk",
             
             # New initiative queries
             "crypto treasury strategy announcement",
@@ -328,7 +335,15 @@ class CryptoNewsScraper:
             # New program queries
             "crypto treasury investment program",
             "crypto treasury acquisition program",
-            "crypto treasury expansion program"
+            "crypto treasury expansion program",
+            
+            # Trading desk and treasury launch queries
+            "crypto trading desk launch",
+            "crypto treasury desk announcement",
+            "digital asset treasury launch",
+            "crypto treasury trading desk",
+            "company launches crypto treasury",
+            "corporation crypto treasury announcement"
         ]
         
         all_articles = []
