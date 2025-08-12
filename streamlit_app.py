@@ -156,7 +156,7 @@ def get_article_type(article):
         'new', 'fresh', 'latest', 'recent', 'strategic', 'initiative', 'program'
     ]
     
-    # Expansion keywords
+    # Expansion keywords (new purchases/acquisitions)
     expansion_keywords = [
         'buys', 'bought', 'purchases', 'purchased', 'acquires', 'acquired', 
         'adds', 'added', 'expands', 'expanded', 'increases', 'increased'
@@ -172,32 +172,40 @@ def get_article_type(article):
         'weekly update', 'monthly update', 'quarterly update'
     ]
     
-    # Check for existing activity first (exclude these)
+    # Check for primary announcement keywords first (highest priority)
+    has_primary_announcement = any(keyword in text for keyword in primary_announcement)
+    if has_primary_announcement:
+        return 'New Announcement'
+    
+    # Check for expansion keywords (new purchases)
+    has_expansion = any(keyword in text for keyword in expansion_keywords)
+    if has_expansion:
+        # If it has expansion keywords, check if it's also reporting existing activity
+        has_existing_activity = any(keyword in text for keyword in existing_activity_keywords)
+        if has_existing_activity:
+            # If it contains both expansion and existing activity, it's likely reporting a new purchase
+            # but also mentioning current holdings - classify as expansion
+            return 'Expansion'
+        else:
+            return 'Expansion'
+    
+    # Check for secondary announcement keywords
+    has_secondary_announcement = any(keyword in text for keyword in secondary_announcement)
+    if has_secondary_announcement:
+        return 'Treasury Activity'
+    
+    # Check for existing activity (lowest priority)
     has_existing_activity = any(keyword in text for keyword in existing_activity_keywords)
     if has_existing_activity:
         return 'Existing Activity'
     
-    # Check for primary announcement keywords
-    has_primary_announcement = any(keyword in text for keyword in primary_announcement)
-    has_secondary_announcement = any(keyword in text for keyword in secondary_announcement)
-    has_expansion = any(keyword in text for keyword in expansion_keywords)
-    
-    # Prioritize announcements
-    if has_primary_announcement:
-        return 'New Announcement'
-    elif has_primary_announcement and has_expansion:
-        return 'New Announcement'
-    elif has_expansion:
-        return 'Expansion'
-    elif has_secondary_announcement:
-        return 'Treasury Activity'
-    else:
-        return 'Treasury Activity'
+    # Default
+    return 'Treasury Activity'
 
 # Filter articles to focus on new announcements
 def filter_articles(articles, filter_type):
     if filter_type == 'all':
-        # Temporarily show all articles while we work on getting better ones
+        # Show all articles while we work on getting better ones
         return articles
     
     filtered = []
@@ -205,11 +213,11 @@ def filter_articles(articles, filter_type):
         article_type = get_article_type(article)
         
         if filter_type == 'announcements':
-            # Show new announcements and expansions (less strict for now)
-            if article_type in ['New Announcement', 'Expansion']:
+            # Show ONLY new announcements (not expansions)
+            if article_type == 'New Announcement':
                 filtered.append(article)
         elif filter_type == 'expansions':
-            # Show announcements and expansions
+            # Show both new announcements AND expansions
             if article_type in ['New Announcement', 'Expansion']:
                 filtered.append(article)
     
