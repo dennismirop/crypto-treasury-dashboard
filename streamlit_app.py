@@ -266,6 +266,11 @@ def main():
     data = load_news_data()
     articles = data.get('articles', [])
     
+    # Debug: Show raw data
+    st.write("Debug - Raw articles count:", len(articles))
+    if articles:
+        st.write("Debug - First article title:", articles[0].get('title', 'No title'))
+    
     # Statistics
     col1, col2, col3, col4 = st.columns(4)
     
