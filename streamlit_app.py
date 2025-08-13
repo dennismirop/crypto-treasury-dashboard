@@ -8,7 +8,7 @@ import time
 
 # Page configuration
 st.set_page_config(
-    page_title="Crypto Treasury Announcements Dashboard",
+    page_title="Crypto Treasury News Dashboard",
     page_icon="📢",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -133,95 +133,46 @@ def get_scraper():
 
 scraper = get_scraper()
 
-# Load news data
+# Load news data - NO CACHING to ensure fresh data
 def load_news_data():
-    if os.path.exists('crypto_treasury_news.json'):
-        with open('crypto_treasury_news.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {'articles': [], 'last_updated': None}
+    try:
+        if os.path.exists('crypto_treasury_news.json'):
+            with open('crypto_treasury_news.json', 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                st.write(f"DEBUG: Loaded {len(data.get('articles', []))} articles from JSON")
+                return data
+        else:
+            st.write("DEBUG: No JSON file found")
+            return {'articles': [], 'last_updated': None}
+    except Exception as e:
+        st.write(f"DEBUG: Error loading data: {e}")
+        return {'articles': [], 'last_updated': None}
 
-# Get article type with focus on announcements
+# Get article type
 def get_article_type(article):
     text = f"{article.get('title', '')} {article.get('description', '')}".lower()
     
-    # Primary announcement keywords (highest priority)
+    # Primary announcement keywords
     primary_announcement = [
         'announces', 'announced', 'announcement', 'launches', 'launched', 'launch',
-        'reveals', 'revealed', 'reveal', 'unveils', 'unveiled', 'unveil',
-        'introduces', 'introduced', 'starts', 'started', 'begins', 'began'
+        'reveals', 'revealed', 'reveal', 'unveils', 'unveiled', 'unveil'
     ]
     
-    # Secondary announcement keywords
-    secondary_announcement = [
-        'new', 'fresh', 'latest', 'recent', 'strategic', 'initiative', 'program'
-    ]
-    
-    # Expansion keywords (new purchases/acquisitions)
+    # Expansion keywords
     expansion_keywords = [
         'buys', 'bought', 'purchases', 'purchased', 'acquires', 'acquired', 
         'adds', 'added', 'expands', 'expanded', 'increases', 'increased'
     ]
     
-    # Keywords that indicate existing activity (not new announcements)
-    existing_activity_keywords = [
-        'holdings hit', 'holdings reach', 'total holdings', 'holdings to',
-        'boosting holdings', 'holdings now', 'holdings at', 'holdings of',
-        'current holdings', 'existing holdings', 'portfolio reaches',
-        'reaches', 'hits', 'now holds', 'currently holds', 'holds',
-        'bitcoin news today', 'crypto news today', 'daily update',
-        'weekly update', 'monthly update', 'quarterly update'
-    ]
-    
-    # Check for primary announcement keywords first (highest priority)
-    has_primary_announcement = any(keyword in text for keyword in primary_announcement)
-    if has_primary_announcement:
+    # Check for primary announcement keywords first
+    if any(keyword in text for keyword in primary_announcement):
         return 'New Announcement'
     
-    # Check for expansion keywords (new purchases)
-    has_expansion = any(keyword in text for keyword in expansion_keywords)
-    if has_expansion:
-        # If it has expansion keywords, check if it's also reporting existing activity
-        has_existing_activity = any(keyword in text for keyword in existing_activity_keywords)
-        if has_existing_activity:
-            # If it contains both expansion and existing activity, it's likely reporting a new purchase
-            # but also mentioning current holdings - classify as expansion
-            return 'Expansion'
-        else:
-            return 'Expansion'
+    # Check for expansion keywords
+    if any(keyword in text for keyword in expansion_keywords):
+        return 'Expansion'
     
-    # Check for secondary announcement keywords
-    has_secondary_announcement = any(keyword in text for keyword in secondary_announcement)
-    if has_secondary_announcement:
-        return 'Treasury Activity'
-    
-    # Check for existing activity (lowest priority)
-    has_existing_activity = any(keyword in text for keyword in existing_activity_keywords)
-    if has_existing_activity:
-        return 'Existing Activity'
-    
-    # Default
     return 'Treasury Activity'
-
-# Filter articles to focus on new announcements
-def filter_articles(articles, filter_type):
-    if filter_type == 'all':
-        # Show all articles while we work on getting better ones
-        return articles
-    
-    filtered = []
-    for article in articles:
-        article_type = get_article_type(article)
-        
-        if filter_type == 'announcements':
-            # Show ONLY new announcements (not expansions)
-            if article_type == 'New Announcement':
-                filtered.append(article)
-        elif filter_type == 'expansions':
-            # Show both new announcements AND expansions
-            if article_type in ['New Announcement', 'Expansion']:
-                filtered.append(article)
-    
-    return filtered
 
 # Main app
 def main():
@@ -233,7 +184,7 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Filter options in main area
+    # Control buttons
     col1, col2, col3 = st.columns([2, 1, 1])
     
     with col1:
@@ -266,7 +217,6 @@ def main():
         
         with col3b:
             if st.button("🔄 Force Reload", use_container_width=True):
-                # Clear cache and force reload
                 st.cache_data.clear()
                 st.cache_resource.clear()
                 st.success("Cache cleared! Reloading data...")
@@ -275,6 +225,11 @@ def main():
     # Load data
     data = load_news_data()
     articles = data.get('articles', [])
+    
+    # Debug info
+    st.write(f"DEBUG: Found {len(articles)} articles in data")
+    if articles:
+        st.write(f"DEBUG: First article: {articles[0].get('title', 'No title')[:50]}...")
     
     # Statistics
     col1, col2, col3, col4 = st.columns(4)
@@ -371,57 +326,69 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
-    # Filter articles
-    filtered_articles = filter_articles(articles, filter_type)
-    
     # Articles section
-    st.markdown(f"## 📰 Latest Treasury Announcements ({len(filtered_articles)} of {len(articles)})")
+    st.markdown(f"## 📰 Latest Treasury Announcements ({len(articles)} articles)")
     
-    if not filtered_articles:
-        st.info("No articles match the current filter. Try selecting a different filter option or refresh the news.")
-    elif len(filtered_articles) < 3:
-        st.info("ℹ️ Limited articles found. The scraper is now using multiple RSS sources (Google News, CoinDesk, Cointelegraph, Bitcoin.com) and is actively filtering for genuine new treasury announcements. Articles are updated every 30 minutes.")
+    if not articles:
+        st.info("No articles found. Try refreshing the news or check back later.")
     else:
-        for article in filtered_articles:
+        # Filter articles
+        filtered_articles = []
+        for article in articles:
             article_type = get_article_type(article)
             
-            # Determine badge class
-            if article_type == 'New Announcement':
-                badge_class = 'badge-announcement'
-            elif article_type == 'Expansion':
-                badge_class = 'badge-expansion'
-            elif article_type == 'Existing Activity':
-                badge_class = 'badge-activity'
-            else:
-                badge_class = 'badge-activity'
-            
-            # Format date
-            try:
-                pub_date = datetime.fromisoformat(article.get('published', '').replace('Z', '+00:00'))
-                formatted_date = pub_date.strftime('%b %d, %H:%M')
-            except:
-                formatted_date = "Unknown"
-            
-            st.markdown(f"""
-            <div class="article-card">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-                    <h4 class="article-title">
-                        <a href="{article.get('link', '#')}" target="_blank">
-                            {article.get('title', 'No title')}
-                        </a>
-                    </h4>
-                    <span class="badge {badge_class}">{article_type}</span>
+            if filter_type == 'all':
+                filtered_articles.append(article)
+            elif filter_type == 'announcements':
+                if article_type == 'New Announcement':
+                    filtered_articles.append(article)
+            elif filter_type == 'expansions':
+                if article_type in ['New Announcement', 'Expansion']:
+                    filtered_articles.append(article)
+        
+        st.write(f"DEBUG: After filtering: {len(filtered_articles)} articles")
+        
+        if not filtered_articles:
+            st.info("No articles match the current filter. Try selecting a different filter option.")
+        else:
+            for article in filtered_articles:
+                article_type = get_article_type(article)
+                
+                # Determine badge class
+                if article_type == 'New Announcement':
+                    badge_class = 'badge-announcement'
+                elif article_type == 'Expansion':
+                    badge_class = 'badge-expansion'
+                else:
+                    badge_class = 'badge-activity'
+                
+                # Format date
+                try:
+                    pub_date = datetime.fromisoformat(article.get('published', '').replace('Z', '+00:00'))
+                    formatted_date = pub_date.strftime('%b %d, %H:%M')
+                except:
+                    formatted_date = "Unknown"
+                
+                st.markdown(f"""
+                <div class="article-card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                        <h4 class="article-title">
+                            <a href="{article.get('link', '#')}" target="_blank">
+                                {article.get('title', 'No title')}
+                            </a>
+                        </h4>
+                        <span class="badge {badge_class}">{article_type}</span>
+                    </div>
+                    <p style="color: #6b7280; margin: 0.5rem 0; font-size: 0.9rem; line-height: 1.5;">
+                        {article.get('description', 'No description')[:250]}...
+                    </p>
+                    <div class="article-meta">
+                        <span>📅 {formatted_date}</span>
+                        <span>📰 {article.get('source', 'Unknown')}</span>
+                        <span>🔍 {article.get('query', 'Unknown')}</span>
+                    </div>
                 </div>
-                <p style="color: #6b7280; margin: 0.5rem 0; font-size: 0.9rem; line-height: 1.5;">
-                    {article.get('description', 'No description')[:250]}...
-                </p>
-                <div class="article-meta">
-                    <span>📅 {formatted_date}</span>
-                    <span>📰 {article.get('source', 'Unknown')}</span>
-                    <span>🔍 {article.get('query', 'Unknown')}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
     
     # Footer
     st.markdown("---")
