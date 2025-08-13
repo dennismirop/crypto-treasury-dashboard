@@ -343,16 +343,20 @@ class CryptoNewsScraper:
                             title = item.get('title', '')
                             description = item.get('description', '')
                             
-                            # Filter for treasury-related keywords
+                            # Filter for treasury-related keywords (more comprehensive)
                             treasury_keywords = [
                                 'treasury', 'bitcoin', 'ethereum', 'crypto', 'cryptocurrency',
                                 'acquisition', 'purchase', 'buys', 'adds', 'announces',
-                                'launches', 'investment', 'reserves', 'holdings'
+                                'launches', 'investment', 'reserves', 'holdings',
+                                'microstrategy', 'strategy', 'tesla', 'square', 'coinbase',
+                                'binance', 'tether', 'matador', 'capital b', 'sharplink',
+                                'vivopower', 'bnc', 'trump family'
                             ]
                             
                             text_to_check = f"{title} {description}".lower()
                             has_treasury_keyword = any(keyword in text_to_check for keyword in treasury_keywords)
                             
+                            # Use the same treasury expansion filter as Google News
                             if has_treasury_keyword and self.is_treasury_expansion(title, description):
                                 article = {
                                     'title': title,
@@ -373,6 +377,248 @@ class CryptoNewsScraper:
             
         except Exception as e:
             logger.error(f"Error fetching CoinDesk RSS feed: {e}")
+            return []
+    
+    def fetch_cryptonews_rss(self) -> List[Dict[str, Any]]:
+        """Fetch news from CryptoNews RSS feed and filter for treasury-related content"""
+        try:
+            # Try multiple CryptoNews RSS URLs
+            cryptonews_urls = [
+                "https://cryptonews.com/news/feed",
+                "https://cryptonews.com/rss",
+                "https://cryptonews.com/feed"
+            ]
+            
+            for cryptonews_rss_url in cryptonews_urls:
+                try:
+                    logger.info(f"Trying CryptoNews RSS: {cryptonews_rss_url}")
+                    response = requests.get(cryptonews_rss_url, timeout=30)
+                    response.raise_for_status()
+                    break  # If successful, break out of the loop
+                except Exception as e:
+                    logger.warning(f"Failed to fetch from {cryptonews_rss_url}: {e}")
+                    continue
+            else:
+                logger.error("All CryptoNews RSS URLs failed")
+                return []
+            
+            # Parse XML using xmltodict
+            feed_data = xmltodict.parse(response.content)
+            articles = []
+            
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            
+            # Extract items from RSS feed
+            if 'rss' in feed_data and 'channel' in feed_data['rss']:
+                channel = feed_data['rss']['channel']
+                if 'item' in channel:
+                    items = channel['item'] if isinstance(channel['item'], list) else [channel['item']]
+                    
+                    for item in items:
+                        try:
+                            # Parse the publication date
+                            pub_date = self.parse_date(item.get('pubDate', ''))
+                            
+                            # Only include articles from the last 24 hours
+                            # Make sure both datetimes are timezone-aware for comparison
+                            if pub_date.tzinfo is None:
+                                pub_date = pub_date.replace(tzinfo=timezone.utc)
+                            
+                            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+                            
+                            if pub_date < cutoff_time:
+                                continue
+                            
+                            # Check if it's treasury-related content
+                            title = item.get('title', '')
+                            description = item.get('description', '')
+                            
+                            # Filter for treasury-related keywords
+                            treasury_keywords = [
+                                'treasury', 'bitcoin', 'ethereum', 'crypto', 'cryptocurrency',
+                                'acquisition', 'purchase', 'buys', 'adds', 'announces',
+                                'launches', 'investment', 'reserves', 'holdings',
+                                'microstrategy', 'strategy', 'tesla', 'square', 'coinbase',
+                                'binance', 'tether', 'matador', 'capital b', 'sharplink',
+                                'vivopower', 'bnc', 'trump family'
+                            ]
+                            
+                            text_to_check = f"{title} {description}".lower()
+                            has_treasury_keyword = any(keyword in text_to_check for keyword in treasury_keywords)
+                            
+                            # Use the same treasury expansion filter as Google News
+                            if has_treasury_keyword and self.is_treasury_expansion(title, description):
+                                article = {
+                                    'title': title,
+                                    'description': description,
+                                    'link': item.get('link', ''),
+                                    'published': pub_date.isoformat(),
+                                    'source': 'CryptoNews',
+                                    'query': 'cryptonews_rss'
+                                }
+                                articles.append(article)
+                                logger.info(f"Found CryptoNews treasury article: {title}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error processing CryptoNews entry: {e}")
+                            continue
+                    
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Error fetching CryptoNews RSS feed: {e}")
+            return []
+    
+    def fetch_cointelegraph_rss(self) -> List[Dict[str, Any]]:
+        """Fetch news from Cointelegraph RSS feed and filter for treasury-related content"""
+        try:
+            cointelegraph_rss_url = "https://cointelegraph.com/rss"
+            logger.info(f"Fetching news from Cointelegraph RSS: {cointelegraph_rss_url}")
+            
+            response = requests.get(cointelegraph_rss_url, timeout=30)
+            response.raise_for_status()
+            
+            # Parse XML using xmltodict
+            feed_data = xmltodict.parse(response.content)
+            articles = []
+            
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            
+            # Extract items from RSS feed
+            if 'rss' in feed_data and 'channel' in feed_data['rss']:
+                channel = feed_data['rss']['channel']
+                if 'item' in channel:
+                    items = channel['item'] if isinstance(channel['item'], list) else [channel['item']]
+                    
+                    for item in items:
+                        try:
+                            # Parse the publication date
+                            pub_date = self.parse_date(item.get('pubDate', ''))
+                            
+                            # Only include articles from the last 24 hours
+                            # Make sure both datetimes are timezone-aware for comparison
+                            if pub_date.tzinfo is None:
+                                pub_date = pub_date.replace(tzinfo=timezone.utc)
+                            
+                            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+                            
+                            if pub_date < cutoff_time:
+                                continue
+                            
+                            # Check if it's treasury-related content
+                            title = item.get('title', '')
+                            description = item.get('description', '')
+                            
+                            # Filter for treasury-related keywords
+                            treasury_keywords = [
+                                'treasury', 'bitcoin', 'ethereum', 'crypto', 'cryptocurrency',
+                                'acquisition', 'purchase', 'buys', 'adds', 'announces',
+                                'launches', 'investment', 'reserves', 'holdings',
+                                'microstrategy', 'strategy', 'tesla', 'square', 'coinbase',
+                                'binance', 'tether', 'matador', 'capital b', 'sharplink',
+                                'vivopower', 'bnc', 'trump family'
+                            ]
+                            
+                            text_to_check = f"{title} {description}".lower()
+                            has_treasury_keyword = any(keyword in text_to_check for keyword in treasury_keywords)
+                            
+                            # Use the same treasury expansion filter as Google News
+                            if has_treasury_keyword and self.is_treasury_expansion(title, description):
+                                article = {
+                                    'title': title,
+                                    'description': description,
+                                    'link': item.get('link', ''),
+                                    'published': pub_date.isoformat(),
+                                    'source': 'Cointelegraph',
+                                    'query': 'cointelegraph_rss'
+                                }
+                                articles.append(article)
+                                logger.info(f"Found Cointelegraph treasury article: {title}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error processing Cointelegraph entry: {e}")
+                            continue
+                    
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Error fetching Cointelegraph RSS feed: {e}")
+            return []
+    
+    def fetch_bitcoincom_rss(self) -> List[Dict[str, Any]]:
+        """Fetch news from Bitcoin.com RSS feed and filter for treasury-related content"""
+        try:
+            bitcoincom_rss_url = "https://news.bitcoin.com/feed/"
+            logger.info(f"Fetching news from Bitcoin.com RSS: {bitcoincom_rss_url}")
+            
+            response = requests.get(bitcoincom_rss_url, timeout=30)
+            response.raise_for_status()
+            
+            # Parse XML using xmltodict
+            feed_data = xmltodict.parse(response.content)
+            articles = []
+            
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            
+            # Extract items from RSS feed
+            if 'rss' in feed_data and 'channel' in feed_data['rss']:
+                channel = feed_data['rss']['channel']
+                if 'item' in channel:
+                    items = channel['item'] if isinstance(channel['item'], list) else [channel['item']]
+                    
+                    for item in items:
+                        try:
+                            # Parse the publication date
+                            pub_date = self.parse_date(item.get('pubDate', ''))
+                            
+                            # Only include articles from the last 24 hours
+                            # Make sure both datetimes are timezone-aware for comparison
+                            if pub_date.tzinfo is None:
+                                pub_date = pub_date.replace(tzinfo=timezone.utc)
+                            
+                            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=24)
+                            
+                            if pub_date < cutoff_time:
+                                continue
+                            
+                            # Check if it's treasury-related content
+                            title = item.get('title', '')
+                            description = item.get('description', '')
+                            
+                            # Filter for treasury-related keywords
+                            treasury_keywords = [
+                                'treasury', 'bitcoin', 'ethereum', 'crypto', 'cryptocurrency',
+                                'acquisition', 'purchase', 'buys', 'adds', 'announces',
+                                'launches', 'investment', 'reserves', 'holdings',
+                                'microstrategy', 'strategy', 'tesla', 'square', 'coinbase',
+                                'binance', 'tether', 'matador', 'capital b', 'sharplink',
+                                'vivopower', 'bnc', 'trump family'
+                            ]
+                            
+                            text_to_check = f"{title} {description}".lower()
+                            has_treasury_keyword = any(keyword in text_to_check for keyword in treasury_keywords)
+                            
+                            # Use the same treasury expansion filter as Google News
+                            if has_treasury_keyword and self.is_treasury_expansion(title, description):
+                                article = {
+                                    'title': title,
+                                    'description': description,
+                                    'link': item.get('link', ''),
+                                    'published': pub_date.isoformat(),
+                                    'source': 'Bitcoin.com',
+                                    'query': 'bitcoincom_rss'
+                                }
+                                articles.append(article)
+                                logger.info(f"Found Bitcoin.com treasury article: {title}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error processing Bitcoin.com entry: {e}")
+                            continue
+                    
+            return articles
+            
+        except Exception as e:
+            logger.error(f"Error fetching Bitcoin.com RSS feed: {e}")
             return []
     
     def scrape_all_crypto_treasury_news(self) -> List[Dict[str, Any]]:
@@ -432,6 +678,21 @@ class CryptoNewsScraper:
         logger.info("Scraping from CoinDesk RSS feed")
         coindesk_articles = self.fetch_coindesk_rss()
         all_articles.extend(coindesk_articles)
+        
+        # Scrape from CryptoNews RSS feed
+        logger.info("Scraping from CryptoNews RSS feed")
+        cryptonews_articles = self.fetch_cryptonews_rss()
+        all_articles.extend(cryptonews_articles)
+        
+        # Scrape from Cointelegraph RSS feed
+        logger.info("Scraping from Cointelegraph RSS feed")
+        cointelegraph_articles = self.fetch_cointelegraph_rss()
+        all_articles.extend(cointelegraph_articles)
+        
+        # Scrape from Bitcoin.com RSS feed
+        logger.info("Scraping from Bitcoin.com RSS feed")
+        bitcoincom_articles = self.fetch_bitcoincom_rss()
+        all_articles.extend(bitcoincom_articles)
         
         # Remove duplicates based on link and similar titles
         seen_links = set()
@@ -528,10 +789,44 @@ class CryptoNewsScraper:
     def get_latest_news(self) -> List[Dict[str, Any]]:
         """Get the latest scraped news data"""
         return self.news_data
+    
+    def test_rss_feeds(self):
+        """Test all RSS feeds to ensure they're working properly"""
+        feeds = [
+            ("CoinDesk", "https://www.coindesk.com/arc/outboundfeeds/rss/"),
+            ("CryptoNews", "https://cryptonews.com/news/feed"),
+            ("Cointelegraph", "https://cointelegraph.com/rss"),
+            ("Bitcoin.com", "https://news.bitcoin.com/feed/")
+        ]
+        
+        for name, url in feeds:
+            try:
+                logger.info(f"Testing {name} RSS feed: {url}")
+                response = requests.get(url, timeout=30)
+                response.raise_for_status()
+                
+                # Try to parse the XML
+                feed_data = xmltodict.parse(response.content)
+                if 'rss' in feed_data and 'channel' in feed_data['rss']:
+                    channel = feed_data['rss']['channel']
+                    if 'item' in channel:
+                        items = channel['item'] if isinstance(channel['item'], list) else [channel['item']]
+                        logger.info(f"✓ {name} RSS feed working - found {len(items)} items")
+                    else:
+                        logger.warning(f"⚠ {name} RSS feed has no items")
+                else:
+                    logger.warning(f"⚠ {name} RSS feed has invalid structure")
+                    
+            except Exception as e:
+                logger.error(f"✗ {name} RSS feed failed: {e}")
 
 def main():
     """Main function to run the scraper"""
     scraper = CryptoNewsScraper()
+    
+    # Test RSS feeds first
+    scraper.test_rss_feeds()
+    
     articles = scraper.scrape_all_crypto_treasury_news()
     scraper.save_to_json()
     
