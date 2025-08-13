@@ -252,24 +252,29 @@ def main():
         st.write("")  # Spacer
     
     with col3:
-        if st.button("🔄 Refresh News", type="primary", use_container_width=True):
-            with st.spinner("Refreshing news data..."):
-                try:
-                    articles = scraper.scrape_all_crypto_treasury_news()
-                    scraper.save_to_json()
-                    st.success("News refreshed successfully!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error refreshing news: {e}")
+        col3a, col3b = st.columns(2)
+        with col3a:
+            if st.button("🔄 Refresh News", type="primary", use_container_width=True):
+                with st.spinner("Refreshing news data..."):
+                    try:
+                        articles = scraper.scrape_all_crypto_treasury_news()
+                        scraper.save_to_json()
+                        st.success("News refreshed successfully!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error refreshing news: {e}")
+        
+        with col3b:
+            if st.button("🔄 Force Reload", use_container_width=True):
+                # Clear cache and force reload
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                st.success("Cache cleared! Reloading data...")
+                st.rerun()
     
     # Load data
     data = load_news_data()
     articles = data.get('articles', [])
-    
-    # Debug: Show raw data
-    st.write("Debug - Raw articles count:", len(articles))
-    if articles:
-        st.write("Debug - First article title:", articles[0].get('title', 'No title'))
     
     # Statistics
     col1, col2, col3, col4 = st.columns(4)
